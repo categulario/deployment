@@ -43,7 +43,6 @@ FROM_NAME = 'Deploy service'
 # also allow configuration in a per-branch basis
 REPOS = {
     'remote_name': {
-        'master': '/path/to/master',
-        'develop': '/path/to/develop',
+        'path': '/path/to/deploy/dir',
     },
 }
