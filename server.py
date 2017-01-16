@@ -16,7 +16,7 @@ from cherrypy.process.plugins import PIDFile
 from cherrypy.process.plugins import Daemonizer
 from time import sleep
 from functools import wraps
-from actions import deploy_repo, rollback_repo
+from actions import deploy_repo
 
 is_windows        = platform.system() == 'Windows'
 deployment_dir    = os.getcwd()
@@ -127,53 +127,6 @@ class App(object):
         process.start()
 
         return {'msg': 'deploy process started, wait for confirmation'}
-
-    @cherrypy.expose
-    @cherrypy.tools.json_out()
-    @check_signature
-    def rollback(self, payload):
-        payload_object = json.loads(payload)
-
-        if not 'ref' in payload_object:
-            return {'msg': 'Missing required ref field'}
-        ref = payload_object['ref']
-
-        repo_name = payload_object['repo']
-
-        # Check if repo is configured
-        if not repo_name in settings.REPOS:
-            return {'msg': 'repo with name {} is not configured'.format(repo_name)}
-
-        if not ref in settings.REPOS[repo_name]:
-            return {'msg': 'repo with name {} and branch {} is not configured'.format(repo_name, ref)}
-
-        repo_dir   = settings.REPOS[repo_name][ref]
-
-        if not os.path.exists(repo_dir):
-            return {'msg': 'directory {} for repo {} and branch {} doesn\'t exist'.format(repo_dir, repo_name, ref)}
-
-        deployfile = os.path.join(repo_dir, '.deployfile')
-
-        try:
-            script = json.load(open(deployfile, 'r'))['update']
-        except ValueError:
-            cherrypy.response.status = 501
-            return {'msg': 'malformed .deployfile'}
-        except KeyError, IOError:
-            script = []
-
-        rollback_data = {
-            'repo'    : repo_name,
-            'started' : datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-        }
-
-        if 'tag' in payload_object:
-            rollback_data['tag'] = payload_object['tag']
-
-        process = Process(target=rollback_repo, args=(repo_dir, rollback_data, script))
-        process.start()
-
-        return {'msg': 'rollback process started, wait for confirmation'}
 
 
 if __name__ == '__main__':
