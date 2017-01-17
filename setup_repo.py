@@ -11,17 +11,18 @@ if __name__ == '__main__':
     if os.path.isdir(dirname):
         print('directory already exists')
         exit(1)
+    project_dir = os.path.abspath(dirname)
 
     remote  = raw_input('please enter remote url (ensure current user can clone): ')
     deployname = datetime.now().strftime('%Y%m%d%H%M%S')
 
-    call(['mkdir', '-p', dirname])
+    call(['mkdir', '-p', project_dir])
 
-    release_dir = os.path.abspath(os.path.join(dirname, 'releases'))
+    release_dir = os.path.abspath(os.path.join(project_dir, 'releases'))
     call(['mkdir', release_dir])
 
     deploy_dir = os.path.abspath(os.path.join(release_dir, deployname))
-    call(['git', 'clone', remote, deployname])
+    call(['git', 'clone', remote, deploy_dir])
 
     deploy_script = os.path.join(deploy_dir, '.deployfile')
     if os.path.isfile(deploy_script):
@@ -39,12 +40,29 @@ if __name__ == '__main__':
 
         deploy_repo(deploy_dir, deploy_data, script)
     else:
-        json.dump(open(deploy_script, 'w'), {
-            'update': [],
-        }, indent=4)
+        print("Please add a .deployfile in the root of your repository")
 
-    develop_dir = os.path.abspath(os.path.join(dirname, 'develop'))
-    master_dir = os.path.abspath(os.path.join(dirname, 'master'))
+    develop_dir = os.path.abspath(os.path.join(project_dir, 'develop'))
+    master_dir = os.path.abspath(os.path.join(project_dir, 'master'))
 
-    call(['ln', '-s', src, dst])
-    call(['ln', '-s', src, dst_master])
+    call(['ln', '-s', deploy_dir, develop_dir])
+    call(['ln', '-s', deploy_dir, master_dir])
+
+# now we create or update repository configuration
+
+    if not os.path.isfile('repos.json'):
+        data = {}
+        print('will create new repos.json')
+    else:
+        try:
+            data = json.load(open('repos.json', 'r'))
+        except ValueError:
+            print('corrupted repos.json')
+            exit(2)
+        print('using existing repos.json')
+
+    data[remote] = {
+        'path': project_dir,
+    }
+
+    json.dump(data, open('repos.json', 'w'))

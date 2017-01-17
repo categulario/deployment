@@ -7,3 +7,4 @@ update.lock
 /deploy.txt
 /conf/settings_*.py
 logs/
+repos.json
